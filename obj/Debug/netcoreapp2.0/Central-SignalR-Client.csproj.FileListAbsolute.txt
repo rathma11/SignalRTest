@@ -1,0 +1,11 @@
+/Users/Dano/work/Central-SignalR-Client/bin/Debug/netcoreapp2.0/Central-SignalR-Client.deps.json
+/Users/Dano/work/Central-SignalR-Client/bin/Debug/netcoreapp2.0/Central-SignalR-Client.runtimeconfig.json
+/Users/Dano/work/Central-SignalR-Client/bin/Debug/netcoreapp2.0/Central-SignalR-Client.runtimeconfig.dev.json
+/Users/Dano/work/Central-SignalR-Client/bin/Debug/netcoreapp2.0/Central-SignalR-Client.dll
+/Users/Dano/work/Central-SignalR-Client/bin/Debug/netcoreapp2.0/Central-SignalR-Client.pdb
+/Users/Dano/work/Central-SignalR-Client/obj/Debug/netcoreapp2.0/Central-SignalR-Client.csprojAssemblyReference.cache
+/Users/Dano/work/Central-SignalR-Client/obj/Debug/netcoreapp2.0/Central-SignalR-Client.csproj.CoreCompileInputs.cache
+/Users/Dano/work/Central-SignalR-Client/obj/Debug/netcoreapp2.0/Central-SignalR-Client.AssemblyInfoInputs.cache
+/Users/Dano/work/Central-SignalR-Client/obj/Debug/netcoreapp2.0/Central-SignalR-Client.AssemblyInfo.cs
+/Users/Dano/work/Central-SignalR-Client/obj/Debug/netcoreapp2.0/Central-SignalR-Client.dll
+/Users/Dano/work/Central-SignalR-Client/obj/Debug/netcoreapp2.0/Central-SignalR-Client.pdb

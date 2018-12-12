@@ -1,0 +1,2 @@
+[12/11/2018 13:37:06]: Connected
+[12/11/2018 13:37:47]:Cannot see if a key has been pressed when either application does not have a console or when console input has been redirected from a file. Try Console.In.Peek.
