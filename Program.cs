@@ -16,6 +16,7 @@ namespace Central_SignalR_Client
         private static string hubGroup = "TestGroup";
         private static int connectionsCount = 0;
         private static int maxConnectionsCount = 0;
+        private static int msgRecievedCount = 0;
 
         public static void Main(string[] args)
         {
@@ -45,8 +46,9 @@ namespace Central_SignalR_Client
             TextWriter oldOut = Console.Out;
             try
             {
-                stream = new FileStream("./log.txt", FileMode.OpenOrCreate, FileAccess.Write);
+                stream = new FileStream("./log.txt", FileMode.Append, FileAccess.Write);
                 writer = new StreamWriter(stream);
+
             }
             catch (Exception e)
             {
@@ -55,22 +57,28 @@ namespace Central_SignalR_Client
                 return;
             }
             Console.SetOut(writer);
+            Console.WriteLine();
+            Write("****************** NEW TEST ********************");
 
             // main
-
+            Task[] tasks = new Task[SignalRTestClient.clientNumber];
             for (int i = 0; i < SignalRTestClient.clientNumber; i++)
             {
                 Task t = new Task(() =>
                 {
                     BasicClient(i);
                 });
+                tasks[i] = t;
                 t.RunSynchronously();
 
                 // new Thread(delegate () {
                 //     BasicClient(i);
                 // }).Start();
             }
-            Write("MaxConnectionsCount: "  + SignalRTestClient.maxConnectionsCount);
+            Task.WaitAll(tasks);
+            SenderClient(1);
+            Write("MaxConnectionsCount: " + SignalRTestClient.maxConnectionsCount);
+            Write("MsgRecievedCount: " + SignalRTestClient.msgRecievedCount);
             Console.SetOut(oldOut);
             writer.Close();
             stream.Close();
@@ -78,68 +86,118 @@ namespace Central_SignalR_Client
 
         static private void BasicClient(int id)
         {
+            bool disconnect = false;
             bool connected = false;
 
             try
             {
                 var connection = new HubConnectionBuilder().
                 WithUrl(SignalRTestClient.huburl).Build();
-             
-                connection.On<string, string>("ReceiveMessage", (user, message) =>
-                {
-                
-                });
-                do
-                {
-                    try
-                    {
-                        StartConn(connection).Wait();
-                        Write(id + " Connected");
-                        connected = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Write(id + " Connection failed " + ex.Message);
-                        connected = false;
-                    }
 
-                    SendMsg(connection, "joinGroup", "TestGroup").Wait();
-                    Write(id + " Groupjoined");
-                    SendMsg(connection, "LeaveGroup", "TestGroup").Wait();
-                    Write(id + " LeaveGroup");
+                connection.On<string, string>("send", (ticket, state) =>
+                {
+                    SignalRTestClient.msgRecievedCount++;
+                    Write(" Message recieved: " + ticket + " " + state);
                     StopConn(connection).Wait();
-                    Write(id + " Disconnected");
+                });
+
+                try
+                {
+                    StartConn(connection).Wait();
+                    Write(id + " Connected");
+                    connected = true;
+                }
+                catch (Exception ex)
+                {
+                    Write(id + " Connection failed " + ex.Message);
+                }
+                if (connected)
+                {
+                    SendMsg(connection, "joinGroup", SignalRTestClient.hubGroup, id).Wait();
+
                     connection.Closed += async (error) =>
                     {
+                        Write(" Connection closed:  " + error);
+                
                         connected = false;
-                        SignalRTestClient.connectionsCount --;
-                        Write("ConnectionsCount: "  + SignalRTestClient.connectionsCount);
-                        await Task.Delay(new Random().Next(0, 5) * 1000);
-                        StartConn(connection).Wait();
+                        SignalRTestClient.connectionsCount--;
+                        Write("ConnectionsCount: " + SignalRTestClient.connectionsCount);
+                        if (!disconnect)
+                        {
+                            await Task.Delay(new Random().Next(0, 5) * 1000);
+                            StartConn(connection).Wait();
+                            SendMsg(connection, "joinGroup", SignalRTestClient.hubGroup, id).Wait();
+                        }
+
                     };
-                } while (connected);
+                    
+                }
             }
             catch (Exception ex)
             {
                 Write(id + " Disconnected : " + ex.Message);
-                connected = false;
+                disconnect = true;
             }
-        } 
+        }
+
+        static private void SenderClient(int id)
+        {
+
+            try
+            {
+                var connection = new HubConnectionBuilder().
+                WithUrl(SignalRTestClient.huburl).Build();
+               
+                try
+                {
+                    StartConn(connection).Wait();
+                    Write(id + " SENDER Connected");
+                }
+                catch (Exception ex)
+                {
+                    Write(id + " SENDER Connection failed " + ex.Message);
+                }
+
+                SendMsg(connection, "joinGroup", SignalRTestClient.hubGroup, id).Wait();
+                SendMsg(connection, "SendToAll", "newTicket", "newstate", id).Wait();
+                Task.Delay(10000);
+                StopConn(connection).Wait();
+
+
+                connection.Closed += async (error) =>
+                {
+                    SignalRTestClient.connectionsCount--;
+                    Write("ConnectionsCount: " + SignalRTestClient.connectionsCount);
+                    await Task.Delay(5000);
+                };
+            }
+            catch (Exception ex)
+            {
+                Write(id + " SENDER Disconnected : " + ex.Message);
+            }
+        }
 
         static private async Task StartConn(HubConnection connection)
         {
             await connection.StartAsync();
-            SignalRTestClient.connectionsCount ++;
-            Write("ConnectionsCount: "  + SignalRTestClient.connectionsCount);
+            SignalRTestClient.connectionsCount++;
+            Write("ConnectionsCount: " + SignalRTestClient.connectionsCount);
             if (SignalRTestClient.connectionsCount > SignalRTestClient.maxConnectionsCount)
             {
                 SignalRTestClient.maxConnectionsCount = SignalRTestClient.connectionsCount;
             }
         }
 
-        static private async Task SendMsg(HubConnection connection, string method, string msg)
+        static private async Task SendMsg(HubConnection connection, string method, string msg, int id)
         {
             await connection.InvokeAsync(method, msg);
+            Write(id + " method: " + method + " message: " + msg);
+        }
+
+        static private async Task SendMsg(HubConnection connection, string method, string ticketId, string state, int id)
+        {
+            await connection.InvokeAsync(method, ticketId, state);
+            Write(id + " method: " + method +  " ticketId: " + ticketId + " state: " + state );
         }
 
         static private async Task StopConn(HubConnection connection)
