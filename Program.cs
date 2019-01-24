@@ -29,6 +29,7 @@ namespace Central_SignalR_Client
                 reader = new StreamReader(stream);
                 SignalRTestClient.huburl = reader.ReadLine();
                 SignalRTestClient.clientNumber = int.Parse(reader.ReadLine());
+                SignalRTestClient.hubGroup = reader.ReadLine();
                 reader.Close();
                 stream = null;
 
@@ -93,8 +94,8 @@ namespace Central_SignalR_Client
             {
                 var connection = new HubConnectionBuilder().
                 WithUrl(SignalRTestClient.huburl).Build();
-
-                connection.On<string, string>("send", (ticket, state) =>
+                connection.ServerTimeout = new TimeSpan(0,1,0);
+                connection.On<string, string>("Send", (ticket, state) =>
                 {
                     SignalRTestClient.msgRecievedCount++;
                     Write(" Message recieved: " + ticket + " " + state);
@@ -159,8 +160,9 @@ namespace Central_SignalR_Client
                 }
 
                 SendMsg(connection, "joinGroup", SignalRTestClient.hubGroup, id).Wait();
-                SendMsg(connection, "SendToAll", "newTicket", "newstate", id).Wait();
-                Task.Delay(10000);
+                //SendMsg(connection, "SendToOthers", "newTicket", "newstate", id).Wait();
+                SendMsg(connection, "SendToOthersInGroup", SignalRTestClient.hubGroup, "newTicket", "newstate", id).Wait();
+                Task.Delay(30000);
                 StopConn(connection).Wait();
 
 
@@ -199,6 +201,13 @@ namespace Central_SignalR_Client
             await connection.InvokeAsync(method, ticketId, state);
             Write(id + " method: " + method +  " ticketId: " + ticketId + " state: " + state );
         }
+
+        static private async Task SendMsg(HubConnection connection, string method, string group, string ticketId, string state, int id)
+        {
+            await connection.InvokeAsync(method, group, ticketId, state, 0);
+            Write(id + " method: " + method +  " ticketId: " + ticketId + " state: " + state );
+        }
+
 
         static private async Task StopConn(HubConnection connection)
         {
